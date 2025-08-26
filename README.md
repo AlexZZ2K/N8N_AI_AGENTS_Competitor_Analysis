@@ -76,22 +76,6 @@ It’s tailored to our exact Excel schema, channel list, and credentials.
 
 ---
 
-## Files & structure
-
-```
-.
-├── assets/
-│   ├── workflow-competitor-db.png
-│   ├── competitor-database.png
-│   ├── our-own-database.png
-│   └── chatwindow-ai-agent.png
-├── workflow/
-│   └── competitor-analysis-agent.n8n.json
-└── README.md
-```
-
----
-
 ## Safety & privacy
 
 - Screenshots may be redacted; channel IDs, workbook IDs, and API keys must be replaced with your own.
