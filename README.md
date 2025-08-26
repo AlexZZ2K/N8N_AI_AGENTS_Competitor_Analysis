@@ -25,16 +25,16 @@ It’s tailored to our exact Excel schema, channel list, and credentials.
 - `assets/chatwindow-ai-agent.png` — the chat UI wired to the agent.
 
 ### Workflow at a glance
-![Workflow overview](Workflow-competitor-db.png)
+![Workflow overview](workflow-competitor-db.png)
 
 ### Competitor database (example)
 ![Competitor database](competitor-database.png)
 
 ### Our own channel database (redacted)
-![Our DB (redacted)](Our-own-database.png)
+![Our DB (redacted)](our-own-database.png)
 
 ### Chat window with the AI agent
-![Chat UI](Chatwindow-ai-agent.png)
+![Chat UI](chatwindow-ai-agent.png)
 
 ---
 
