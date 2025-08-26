@@ -1,0 +1,3329 @@
+{
+  "name": "Competitor Analysis Agent (3WF)",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "63ed3395-f93f-4909-8cf0-ca04d8df0dbd",
+              "name": "Channel_ID",
+              "value": "={{ $json.data.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1056,
+        48
+      ],
+      "id": "NODE_01",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.channel.videos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        -48
+      ],
+      "id": "NODE_02",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a97dcfae-cc52-4a68-9ea1-f105bc823554",
+              "name": "video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1a2877ac-29e7-404b-a5ea-b50f1d4a8781",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "4849b124-582d-453f-870f-127eb3cfbb23",
+              "name": "Summary_Video",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "e20fc5bc-ac5e-4cfd-bd7e-802bd3c2bad1",
+              "name": "view_count",
+              "value": "={{ $json.view_count }}",
+              "type": "string"
+            },
+            {
+              "id": "7d8636bc-d951-4abf-99a7-4612a3126141",
+              "name": "video_length",
+              "value": "={{ $json.video_length }}",
+              "type": "string"
+            },
+            {
+              "id": "5ad0a801-47c9-4900-983b-3da7359b0ba2",
+              "name": "URL",
+              "value": "=https://www.youtube.com/watch?v={{ $json.video_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d21ad1fb-dc6a-4aaf-8636-4093a219217b",
+              "name": "Published_at",
+              "value": "={{ $json.published_at }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -48
+      ],
+      "id": "NODE_03",
+      "name": "Formatting"
+    },
+    {
+      "parameters": {
+        "url": "=https://youtube-captions-transcript-subtitles-video-combiner.p.rapidapi.com/download-all/ {{ $json.video_id }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format_subtitle",
+              "value": "srt"
+            },
+            {
+              "name": "format_answer",
+              "value": "json"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-captions-transcript-subtitles-video-combiner.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -160
+      ],
+      "id": "NODE_04",
+      "name": "RAPIDapi - TRANSCRIPT SCRAPEr",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input JSON\nconst data = $json;\n\n// If languages array exists, dedupe it\nif (data.languages) {\n  data.languages = [...new Set(data.languages.map(l => JSON.stringify(l)))]\n    .map(str => JSON.parse(str));\n}\n\n// Keep the same single item, just with deduped languages\nreturn [{ json: data }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -160
+      ],
+      "id": "NODE_05",
+      "name": "Keep only 1 language",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        736,
+        -176
+      ],
+      "id": "NODE_06",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=I need you to summarize the text in the following manner:\nGoal of the video:\ntopics covered in the video:\nyour summary must be max. 50 words long.\nHere are the subtitles {{ $json.text }}\n\n",
+        "options": {
+          "systemMessage": "You are an informative summarizer for video transcripts. The videos are in the crypto/stock trading space."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1856,
+        -80
+      ],
+      "id": "NODE_07",
+      "name": "AI Agent",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1872,
+        144
+      ],
+      "id": "NODE_08",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1",
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2000,
+        144
+      ],
+      "id": "NODE_09",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "mode": "delete",
+        "deleteMode": "all"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "typeVersion": 1.1,
+      "position": [
+        -1856,
+        96
+      ],
+      "id": "NODE_10",
+      "name": "Chat Memory Manager"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1",
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1792,
+        320
+      ],
+      "id": "NODE_11",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code Node (JavaScript)\n// Input: an item with a property \"subtitle\" that contains the .srt text\n// Output: cleaned text without timestamps or sequence numbers\n\nconst input = items[0].json.subtitle;\n\n// Remove subtitle numbers (lines with only digits)\nlet cleaned = input.replace(/^\\d+\\s*$/gm, '');\n\n// Remove timestamp lines (00:00:00,000 --> 00:00:00,000)\ncleaned = cleaned.replace(/^\\d{2}:\\d{2}:\\d{2},\\d{3} --> \\d{2}:\\d{2}:\\d{2},\\d{3}\\s*$/gm, '');\n\n// Remove extra newlines\ncleaned = cleaned.replace(/\\n{2,}/g, '\\n').trim();\n\nreturn [{ json: { text: cleaned } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        -160
+      ],
+      "id": "NODE_12",
+      "name": "Code",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/id",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "TradingLabOfficial"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1504,
+        -432
+      ],
+      "id": "NODE_13",
+      "name": "Get YT Channel 1"
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/id",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "TradePrime"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1504,
+        -240
+      ],
+      "id": "NODE_14",
+      "name": "Get YT Channel 2"
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/id",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "DataTraders"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1504,
+        -48
+      ],
+      "id": "NODE_15",
+      "name": "Get YT Channel 3"
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/id",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "Wysetrade"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1504,
+        144
+      ],
+      "id": "NODE_16",
+      "name": "Get YT Channel 4"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1280,
+        -16
+      ],
+      "id": "NODE_17",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "content": "Scrape video info (you can change APIs)",
+        "height": 400,
+        "width": 512
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -928,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "NODE_18",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -832,
+        48
+      ],
+      "id": "NODE_19",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "content": "Generate Summaries",
+        "height": 496,
+        "width": 406
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        -192
+      ],
+      "id": "NODE_20",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "clear",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "applyTo": "Contents",
+        "useRange": true,
+        "range": "A2:J300"
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        -1792,
+        -800
+      ],
+      "id": "NODE_21",
+      "name": "Clear sheet1",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "content": "Get all competitor's channels",
+        "height": 1168
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1584,
+        -480
+      ],
+      "typeVersion": 1,
+      "id": "NODE_22",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        960,
+        -448
+      ],
+      "id": "NODE_23",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6fdd7789-d3dc-488c-82e5-1b0bdea5b50c",
+              "name": "video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        -496
+      ],
+      "id": "NODE_24",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f20ad3a2-0aaf-4067-9618-6e8b9b788ac8",
+              "name": "video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            },
+            {
+              "id": "b1aaefbb-9316-4f8f-b305-15e865170c0f",
+              "name": "Summary_Video",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        -448
+      ],
+      "id": "NODE_25",
+      "name": "re-Format"
+    },
+    {
+      "parameters": {
+        "amount": 0.5
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        -160
+      ],
+      "id": "NODE_26",
+      "name": "Wait",
+      "webhookId": "REDACTED",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "table": {
+          "__rl": true,
+          "value": "REDACTED_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "limit": 500,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        -656
+      ],
+      "id": "NODE_27",
+      "name": "Get rows",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ac2c0d00-1001-4303-816c-ec32f91772f5",
+              "name": "get_rows_video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -656
+      ],
+      "id": "NODE_28",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -160,
+        -352
+      ],
+      "id": "NODE_29",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01b796d8-4a9e-4d04-8511-df1acf211956",
+              "name": "video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5acfd930-8532-4f96-9bfe-f73da2bdf9ae",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "3cbf8090-9af7-40f8-94d9-8c7048232e90",
+              "name": "view_count",
+              "value": "={{ $json.view_count }}",
+              "type": "string"
+            },
+            {
+              "id": "a6a04644-5b0c-4889-bf1b-1333631effc9",
+              "name": "video_length",
+              "value": "={{ $json.video_length }}",
+              "type": "string"
+            },
+            {
+              "id": "5fb4e8db-af15-4f01-a7dd-9fe7ad237ce9",
+              "name": "URL",
+              "value": "={{ $json.URL }}",
+              "type": "string"
+            },
+            {
+              "id": "b3cf7667-81b8-48ae-875a-d073032b3dca",
+              "name": "Published_at",
+              "value": "={{ $json.Published_at }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        -608
+      ],
+      "id": "NODE_30",
+      "name": "edit field"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a knowledgeable assistant that answers insightful questions regarding youtube videos in the excel database. Always read the Excel of both my competitors database and my own! You help users with content ideas for their own YouTube Channel!"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3072,
+        480
+      ],
+      "id": "NODE_31",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nI am programmed by Alex to have all of your competitors on YouTube ready here in my database! I can answer questions regarding their content. The database get's updated periodically!\n\nLet me know what you would like to know!\n\n",
+        "options": {
+          "loadPreviousSession": "notSupported"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -3408,
+        480
+      ],
+      "id": "NODE_32",
+      "name": "When chat message received",
+      "webhookId": "REDACTED"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -3184,
+        704
+      ],
+      "id": "NODE_33",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -3056,
+        704
+      ],
+      "id": "NODE_34",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "readRows",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "useRange": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcelTool",
+      "typeVersion": 2.1,
+      "position": [
+        -2928,
+        704
+      ],
+      "id": "NODE_35",
+      "name": "Get rows from sheet in Microsoft Excel 365",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "append",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "video_id",
+              "fieldValue": "={{ $json.video_id }}"
+            },
+            {
+              "column": "title",
+              "fieldValue": "={{ $json.title }}"
+            },
+            {
+              "column": "view_count",
+              "fieldValue": "={{ $json.view_count }}"
+            },
+            {
+              "column": "video_length",
+              "fieldValue": "={{ $json.video_length }}"
+            },
+            {
+              "column": "URL",
+              "fieldValue": "={{ $json.URL }}"
+            },
+            {
+              "column": "Published_at",
+              "fieldValue": "={{ $json.Published_at }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        736,
+        -736
+      ],
+      "id": "NODE_36",
+      "name": "Append data to sheet",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "update",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "columnToMatchOn": "video_id",
+        "valueToMatchOn": "={{ $json.video_id }}",
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "Summary_Video",
+              "fieldValue": "={{ $json.Summary_Video }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        1632,
+        -544
+      ],
+      "id": "NODE_37",
+      "name": "Update sheet",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1408,
+        -448
+      ],
+      "id": "NODE_38",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        -352
+      ],
+      "id": "NODE_39",
+      "name": "Wait1",
+      "webhookId": "REDACTED"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "37800954-3184-42d2-b8b3-68fcf361632a",
+              "leftValue": "={{ $json.get_rows_video_id }}",
+              "rightValue": "={{ $json.video_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        -352
+      ],
+      "id": "NODE_40",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "18ec4c0e-13f8-4fe4-abd6-4fa1975af7c5",
+              "leftValue": "={{ $json.Summary_Video }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "0812630d-c327-416a-bf17-3f682a4f3934",
+              "leftValue": "={{ $json.video_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        -128
+      ],
+      "id": "NODE_41",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "table": {
+          "__rl": true,
+          "value": "REDACTED_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "limit": 300,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        288,
+        -128
+      ],
+      "id": "NODE_42",
+      "name": "Get rows1",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/id",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "LuxAlgo"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1504,
+        336
+      ],
+      "id": "NODE_43",
+      "name": "Get YT Channel "
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/id",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "fractalflowpro"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1504,
+        528
+      ],
+      "id": "NODE_44",
+      "name": "Get YT Channel 5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "63ed3395-f93f-4909-8cf0-ca04d8df0dbd",
+              "name": "Channel_ID",
+              "value": "={{ $json.data.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1056,
+        1856
+      ],
+      "id": "NODE_45",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/videos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "channel_id",
+              "value": "={{ $json.Channel_ID }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -608,
+        1904
+      ],
+      "id": "NODE_46",
+      "name": "HTTP Request",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.channel.videos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        1712
+      ],
+      "id": "NODE_47",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a97dcfae-cc52-4a68-9ea1-f105bc823554",
+              "name": "video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1a2877ac-29e7-404b-a5ea-b50f1d4a8781",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "4849b124-582d-453f-870f-127eb3cfbb23",
+              "name": "Summary_Video",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "e20fc5bc-ac5e-4cfd-bd7e-802bd3c2bad1",
+              "name": "view_count",
+              "value": "={{ $json.view_count }}",
+              "type": "string"
+            },
+            {
+              "id": "7d8636bc-d951-4abf-99a7-4612a3126141",
+              "name": "video_length",
+              "value": "={{ $json.video_length }}",
+              "type": "string"
+            },
+            {
+              "id": "5ad0a801-47c9-4900-983b-3da7359b0ba2",
+              "name": "URL",
+              "value": "=https://www.youtube.com/watch?v={{ $json.video_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d21ad1fb-dc6a-4aaf-8636-4093a219217b",
+              "name": "Published_at",
+              "value": "={{ $json.published_at }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        1712
+      ],
+      "id": "NODE_48",
+      "name": "Formatting1"
+    },
+    {
+      "parameters": {
+        "url": "=https://youtube-captions-transcript-subtitles-video-combiner.p.rapidapi.com/download-all/ {{ $json.video_id }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format_subtitle",
+              "value": "srt"
+            },
+            {
+              "name": "format_answer",
+              "value": "json"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-captions-transcript-subtitles-video-combiner.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        1712
+      ],
+      "id": "NODE_49",
+      "name": "RAPIDapi - TRANSCRIPT SCRAPEr1",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input JSON\nconst data = $json;\n\n// If languages array exists, dedupe it\nif (data.languages) {\n  data.languages = [...new Set(data.languages.map(l => JSON.stringify(l)))]\n    .map(str => JSON.parse(str));\n}\n\n// Keep the same single item, just with deduped languages\nreturn [{ json: data }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        1712
+      ],
+      "id": "NODE_50",
+      "name": "Keep only 1 language1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        736,
+        1760
+      ],
+      "id": "NODE_51",
+      "name": "Loop Over Items3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=I need you to summarize the text in the following manner:\nGoal of the video:\ntopics covered in the video:\nyour summary must be max. 50 words long.\nHere are the subtitles {{ $json.text }}\n\n",
+        "options": {
+          "systemMessage": "You are an informative summarizer for video transcripts. The videos are in the crypto/stock trading space."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1856,
+        1840
+      ],
+      "id": "NODE_52",
+      "name": "AI Agent2",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1872,
+        2064
+      ],
+      "id": "NODE_53",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1",
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2000,
+        2064
+      ],
+      "id": "NODE_54",
+      "name": "Simple Memory3"
+    },
+    {
+      "parameters": {
+        "mode": "delete",
+        "deleteMode": "all"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "typeVersion": 1.1,
+      "position": [
+        -1856,
+        1856
+      ],
+      "id": "NODE_55",
+      "name": "Chat Memory Manager1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1",
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1792,
+        2080
+      ],
+      "id": "NODE_56",
+      "name": "Simple Memory4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code Node (JavaScript)\n// Input: an item with a property \"subtitle\" that contains the .srt text\n// Output: cleaned text without timestamps or sequence numbers\n\nconst input = items[0].json.subtitle;\n\n// Remove subtitle numbers (lines with only digits)\nlet cleaned = input.replace(/^\\d+\\s*$/gm, '');\n\n// Remove timestamp lines (00:00:00,000 --> 00:00:00,000)\ncleaned = cleaned.replace(/^\\d{2}:\\d{2}:\\d{2},\\d{3} --> \\d{2}:\\d{2}:\\d{2},\\d{3}\\s*$/gm, '');\n\n// Remove extra newlines\ncleaned = cleaned.replace(/\\n{2,}/g, '\\n').trim();\n\nreturn [{ json: { text: cleaned } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1712
+      ],
+      "id": "NODE_57",
+      "name": "Code1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/id",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "TomCrown"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1504,
+        1856
+      ],
+      "id": "NODE_58",
+      "name": "Get YT Channel 6"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1280,
+        1792
+      ],
+      "id": "NODE_59",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -832,
+        1856
+      ],
+      "id": "NODE_60",
+      "name": "Loop Over Items4"
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "clear",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "applyTo": "Contents",
+        "useRange": true,
+        "range": "A2:J300"
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        -1792,
+        1376
+      ],
+      "id": "NODE_61",
+      "name": "Clear sheet",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "content": "Get Your YT CHANNEL",
+        "height": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1584,
+        1792
+      ],
+      "typeVersion": 1,
+      "id": "NODE_62",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        960,
+        1472
+      ],
+      "id": "NODE_63",
+      "name": "Merge4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6fdd7789-d3dc-488c-82e5-1b0bdea5b50c",
+              "name": "video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        1424
+      ],
+      "id": "NODE_64",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f20ad3a2-0aaf-4067-9618-6e8b9b788ac8",
+              "name": "video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            },
+            {
+              "id": "b1aaefbb-9316-4f8f-b305-15e865170c0f",
+              "name": "Summary_Video",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        1472
+      ],
+      "id": "NODE_65",
+      "name": "re-Format1"
+    },
+    {
+      "parameters": {
+        "amount": 0.5
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        1712
+      ],
+      "id": "NODE_66",
+      "name": "Wait2",
+      "webhookId": "REDACTED",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "table": {
+          "__rl": true,
+          "value": "REDACTED_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "limit": 300,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        1520
+      ],
+      "id": "NODE_67",
+      "name": "Get rows2",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ac2c0d00-1001-4303-816c-ec32f91772f5",
+              "name": "get_rows_video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        1520
+      ],
+      "id": "NODE_68",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -160,
+        1616
+      ],
+      "id": "NODE_69",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01b796d8-4a9e-4d04-8511-df1acf211956",
+              "name": "video_id",
+              "value": "={{ $json.video_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5acfd930-8532-4f96-9bfe-f73da2bdf9ae",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "3cbf8090-9af7-40f8-94d9-8c7048232e90",
+              "name": "view_count",
+              "value": "={{ $json.view_count }}",
+              "type": "string"
+            },
+            {
+              "id": "a6a04644-5b0c-4889-bf1b-1333631effc9",
+              "name": "video_length",
+              "value": "={{ $json.video_length }}",
+              "type": "string"
+            },
+            {
+              "id": "5fb4e8db-af15-4f01-a7dd-9fe7ad237ce9",
+              "name": "URL",
+              "value": "={{ $json.URL }}",
+              "type": "string"
+            },
+            {
+              "id": "b3cf7667-81b8-48ae-875a-d073032b3dca",
+              "name": "Published_at",
+              "value": "={{ $json.Published_at }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        1328
+      ],
+      "id": "NODE_70",
+      "name": "edit field1"
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "append",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "video_id",
+              "fieldValue": "={{ $json.video_id }}"
+            },
+            {
+              "column": "title",
+              "fieldValue": "={{ $json.title }}"
+            },
+            {
+              "column": "view_count",
+              "fieldValue": "={{ $json.view_count }}"
+            },
+            {
+              "column": "video_length",
+              "fieldValue": "={{ $json.video_length }}"
+            },
+            {
+              "column": "URL",
+              "fieldValue": "={{ $json.URL }}"
+            },
+            {
+              "column": "Published_at",
+              "fieldValue": "={{ $json.Published_at }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        736,
+        1184
+      ],
+      "id": "NODE_71",
+      "name": "Append data to sheet1",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "37800954-3184-42d2-b8b3-68fcf361632a",
+              "leftValue": "={{ $json.get_rows_video_id }}",
+              "rightValue": "={{ $json.video_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        1616
+      ],
+      "id": "NODE_72",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "18ec4c0e-13f8-4fe4-abd6-4fa1975af7c5",
+              "leftValue": "={{ $json.Summary_Video }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "1b94d444-00e9-4d37-b5d6-3a4cebef6620",
+              "leftValue": "={{ $json.video_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        1760
+      ],
+      "id": "NODE_73",
+      "name": "Filter1"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "table": {
+          "__rl": true,
+          "value": "REDACTED_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "limit": 300,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        288,
+        1760
+      ],
+      "id": "NODE_74",
+      "name": "Get rows3",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "daysInterval": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2080,
+        -656
+      ],
+      "id": "NODE_75",
+      "name": "Schedule Trigger Comp."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "daysInterval": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2080,
+        1520
+      ],
+      "id": "NODE_76",
+      "name": "Scheduled Trigger Own."
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "update",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "columnToMatchOn": "video_id",
+        "valueToMatchOn": "={{ $json.video_id }}",
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "Summary_Video",
+              "fieldValue": "={{ $json.Summary_Video }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        1632,
+        1328
+      ],
+      "id": "NODE_77",
+      "name": "Update sheet1",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1408,
+        1472
+      ],
+      "id": "NODE_78",
+      "name": "Loop Over Items5"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        1520
+      ],
+      "id": "NODE_79",
+      "name": "Wait3",
+      "webhookId": "REDACTED"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get sheets in Microsoft Excel 365. This is the database of my own videos.",
+        "resource": "worksheet",
+        "operation": "readRows",
+        "workbook": {
+          "__rl": true,
+          "value": "REDACTED_WORKBOOK_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "REDACTED_WORKSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "REDACTED_NAME",
+          "cachedResultUrl": "REDACTED_URL"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcelTool",
+      "typeVersion": 2.1,
+      "position": [
+        -2800,
+        704
+      ],
+      "id": "NODE_80",
+      "name": "Get rows from sheet in Microsoft Excel ",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Update Meta data first",
+        "height": 224,
+        "width": 278
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        656,
+        -800
+      ],
+      "id": "NODE_81",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Add Summaries",
+        "height": 224,
+        "width": 182
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        -592
+      ],
+      "id": "NODE_82",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "url": "https://youtube-scraper3.p.rapidapi.com/api/v1/channel/videos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "channel_id",
+              "value": "={{ $json.Channel_ID }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "youtube-scraper3.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -608,
+        144
+      ],
+      "id": "NODE_83",
+      "name": "Get info of videos",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "Transcript Scraper API",
+        "height": 240,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -208
+      ],
+      "id": "NODE_84",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "If info already in the database -> don't add rows",
+        "height": 176,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "NODE_85",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "content": "Do existing rows all have summaries?",
+        "height": 208,
+        "width": 432
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        224,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "NODE_86",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "content": "Generate Summaries",
+        "height": 496,
+        "width": 406
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        1760
+      ],
+      "id": "NODE_87",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "Add Summaries",
+        "height": 224,
+        "width": 182
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        1264
+      ],
+      "id": "NODE_88",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "content": "Transcript Scraper API",
+        "height": 240,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1664
+      ],
+      "id": "NODE_89",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "Do existing rows all have summaries?",
+        "height": 208,
+        "width": 432
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        224,
+        1712
+      ],
+      "typeVersion": 1,
+      "id": "NODE_90",
+      "name": "Sticky Note16"
+    },
+    {
+      "parameters": {
+        "content": "If info already in the database -> don't add rows",
+        "height": 176,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        1568
+      ],
+      "typeVersion": 1,
+      "id": "NODE_91",
+      "name": "Sticky Note17"
+    },
+    {
+      "parameters": {
+        "content": "Scrape video info (you can change APIs)",
+        "height": 400,
+        "width": 512
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -928,
+        1696
+      ],
+      "typeVersion": 1,
+      "id": "NODE_92",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## This is the workflow that updates your content database. \n* ",
+        "height": 512,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2256,
+        1376
+      ],
+      "id": "NODE_93",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## This is the workflow that updates your competitor database. \n**",
+        "height": 512,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2192,
+        -880
+      ],
+      "id": "NODE_94",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "## The AI Agent Pulls info from the two databases. You can chat with him \n* ",
+        "height": 512,
+        "width": 1328,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3664,
+        384
+      ],
+      "id": "NODE_95",
+      "name": "Sticky Note18"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatting": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "RAPIDapi - TRANSCRIPT SCRAPEr": {
+      "main": [
+        [
+          {
+            "node": "Keep only 1 language",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep only 1 language": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "RAPIDapi - TRANSCRIPT SCRAPEr",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory Manager": {
+      "main": [
+        [
+          {
+            "node": "Get YT Channel 1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get YT Channel 4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get YT Channel 2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get YT Channel 3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get YT Channel ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get YT Channel 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Chat Memory Manager",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get YT Channel 1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get YT Channel 4": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Get YT Channel 2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get YT Channel 3": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get info of videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "re-Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "re-Format": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear sheet1": {
+      "main": [
+        []
+      ]
+    },
+    "Get rows": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "edit field": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append data to sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rows from sheet in Microsoft Excel 365": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append data to sheet": {
+      "main": [
+        []
+      ]
+    },
+    "Update sheet": {
+      "main": [
+        []
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Update sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "edit field",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rows1": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get YT Channel ": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Get YT Channel 5": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Formatting1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatting1": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "RAPIDapi - TRANSCRIPT SCRAPEr1": {
+      "main": [
+        [
+          {
+            "node": "Keep only 1 language1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep only 1 language1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items3": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "RAPIDapi - TRANSCRIPT SCRAPEr1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory3": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory Manager1": {
+      "main": [
+        [
+          {
+            "node": "Get YT Channel 6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory4": {
+      "ai_memory": [
+        [
+          {
+            "node": "Chat Memory Manager1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get YT Channel 6": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items4": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "re-Format1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "re-Format1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rows2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "edit field1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append data to sheet1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "edit field1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get rows3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rows3": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger Comp.": {
+      "main": [
+        [
+          {
+            "node": "Clear sheet1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Chat Memory Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled Trigger Own.": {
+      "main": [
+        [
+          {
+            "node": "Clear sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get rows2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Chat Memory Manager1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items5": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Update sheet1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rows from sheet in Microsoft Excel ": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get info of videos": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "REDACTED_VERSION_ID",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED"
+  },
+  "id": "REDACTED_WORKFLOW_ID",
+  "tags": []
+}
