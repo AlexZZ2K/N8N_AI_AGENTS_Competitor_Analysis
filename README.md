@@ -18,11 +18,7 @@ It’s tailored to our exact Excel schema, channel list, and credentials.
 
 ## What’s inside
 
-- `workflow/competitor-analysis-agent.n8n.json` — the n8n workflow export you can import.
-- `assets/workflow-competitor-db.png` — workflow overview.
-- `assets/competitor-database.png` — competitor DB snapshot (demo).
-- `assets/our-own-database.png` — our channel DB snapshot (PII redacted in the image).
-- `assets/chatwindow-ai-agent.png` — the chat UI wired to the agent.
+- `competitor-analysis-agent.n8n.json` — the n8n workflow export you can import.
 
 ### Workflow at a glance
 ![Workflow overview](workflow-competitor-db.png)
