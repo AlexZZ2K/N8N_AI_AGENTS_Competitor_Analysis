@@ -1,7 +1,6 @@
 # YouTube Competitor Analysis Agent — n8n + RAPID API + AI (Personal Learning Repo)
 
-> ⚠️ **Custom project built for a friend.** This is not a general-purpose template; it documents how I automated competitor research for a collaborative video editor workflow.
-> You have to set up your own credentials & API keys for it to work!
+>  **Custom project built for a friend.** This is not a general-purpose template; it documents how I automated competitor research for a collaborative video editor workflow.
 
 ---
 
@@ -59,7 +58,7 @@ It’s tailored to our exact Excel schema, channel list, and credentials.
 ---
 
 ## Importing the workflow (n8n)
-
+> You have to set up your own credentials & API keys for it to work!
 1. Open n8n → **Workflows** → **Import from File**.  
 2. Select `competitor-analysis-agent.n8n.json`.  
 3. Update your environment:  
