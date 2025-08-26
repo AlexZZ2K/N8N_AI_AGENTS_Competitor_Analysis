@@ -28,7 +28,7 @@ It’s tailored to our exact Excel schema, channel list, and credentials.
 ![Workflow overview](Workflow-competitor-db.png)
 
 ### Competitor database (example)
-![Competitor database](Competitor-database.png)
+![Competitor database](competitor-database.png)
 
 ### Our own channel database (redacted)
 ![Our DB (redacted)](Our-own-database.png)
